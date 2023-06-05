@@ -67,7 +67,7 @@ def train_model():
     if level < 4:
         #generator.load_state_dict(torch.load("models/pynet_level_" + str(level + 1) +
         #                                     "owntrain_epoch_" + str(restore_epoch) + ".pth"), strict=False)
-        generator.load_state_dict(torch.load("/content/gdrive/MyDrive/ColabNotebooks/pynet_fullres/model/pynet_level_" + str(level) +
+        generator.load_state_dict(torch.load("/content/gdrive/MyDrive/ColabNotebooks/CSANet/model_csa/pynet_level_" + str(level) +
                                              "_epoch_" + str(restore_epoch) + ".pth"), strict=False) # "level+1" changed to level
     # Losses
 
@@ -121,7 +121,7 @@ def train_model():
                 # Save the model that corresponds to the current epoch
 
                 generator.eval().cpu()
-                torch.save(generator.state_dict(), "/content/gdrive/MyDrive/ColabNotebooks/pynet_fullres/model/pynet_level_" + str(level) + "_epoch_" + str(epoch) + "_lght.pth")
+                torch.save(generator.state_dict(), "/content/gdrive/MyDrive/ColabNotebooks/CSANet/model_csa/pynet_level_" + str(level) + "_epoch_" + str(epoch) + ".pth")
                 generator.to(device).train()
 
                 # Save visual results for several test images
@@ -140,8 +140,8 @@ def train_model():
                         enhanced = generator(raw_image.detach())
                         enhanced = np.asarray(to_image(torch.squeeze(enhanced.detach().cpu())))
 
-                        imageio.imwrite("/content/gdrive/MyDrive/ColabNotebooks/PYNET/results/pynet_img_" + str(j) + "_level_" + str(level) + "_epoch_" +
-                                        str(epoch) + "_lght.jpg", enhanced)
+                        imageio.imwrite("/content/gdrive/MyDrive/ColabNotebooks/CSANet/results_csa/pynet_img_" + str(j) + "_level_" + str(level) + "_epoch_" +
+                                        str(epoch) + ".jpg", enhanced)
 
                 # Evaluate the model
 
