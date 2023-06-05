@@ -12,7 +12,7 @@ import sys
 
 from load_data import LoadData, LoadVisualData
 from msssim import MSSSIM
-from model import PyNET
+from model_attention import PyNET_att
 from vgg import vgg_19
 from utils import normalize_batch, process_command_args
 
