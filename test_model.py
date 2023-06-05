@@ -9,7 +9,7 @@ from torchvision import transforms
 import torch
 
 from load_data import LoadVisualData
-from model import PyNET
+from model_attention import PyNET_att
 import utils
 import imageio
 
@@ -37,7 +37,7 @@ def test_model():
 
     # Creating and loading pre-trained PyNET model
 
-    model = PyNET(level=level, instance_norm=True, instance_norm_level_1=True).to(device)
+    model = PyNET_att(level=level, instance_norm=True, instance_norm_level_1=True).to(device)
     model = torch.nn.DataParallel(model)
 
     if orig_model == "true":
