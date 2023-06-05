@@ -3,10 +3,10 @@
 import torch.nn as nn
 import torch
 
-class PyNET(nn.Module):
+class PyNET_att(nn.Module):
 
     def __init__(self, level, instance_norm=True, instance_norm_level_1=False):
-        super(PyNET, self).__init__()
+        super(PyNET_att, self).__init__()
 
         self.level = level
 
@@ -55,9 +55,15 @@ class PyNET(nn.Module):
 
         # -------------------------------------
 
-        self.conv_l0_d1 = ConvLayer(16, 3, kernel_size=3, stride=1, relu=False)
-        self.output_l0 = nn.Sigmoid()
-
+        self.conv_l0_d1 = ConvLayer(16, 32, kernel_size=3, stride=1, relu=True)               
+        self.out_att = att_module(input_channels = 32, ratio =2, kernel_size = 3)
+        
+        self.conv_l0_d2 = ConvLayer(32, 16, kernel_size=3, stride=1, relu=True)
+        self.conv_l0_d3 = ConvLayer(16, 16, kernel_size=1, stride=1, relu=True)
+        
+        self.conv_l0_d4 = ConvLayer(32, 3, kernel_size=1, stride=1, relu=False)
+        self.output_l0 = nn.Tanh()
+        
     def level_4(self, pool3):
         
         conv_l4_d1 = self.conv_l4_d1(pool3)
@@ -101,10 +107,24 @@ class PyNET(nn.Module):
         return output_l1, conv_t0b
 
     def level_0(self, conv_t0b):
-
-        conv_l0_d1 = self.conv_l0_d1(conv_t0b)
-        output_l0 = self.output_l0(conv_l0_d1)
-
+        print('conv_t0b shape: ',conv_t0b.shape)
+        conv_l0_d1 = self.conv_l0_d1(conv_t0b)       
+        print('conv_l0_d1 shape: ',conv_l0_d1.shape)
+        att_l0 = self.out_att (conv_l0_d1) 
+        print('att_l0 shape: ',att_l0.shape)
+        z1_l0 = conv_l0_d1 + att_l0
+        print('z1_l0 shape: ',z1_l0.shape)
+        conv_l0_d2 = self.conv_l0_d2(z1_l0)    
+        print('conv_l0_d2 shape: ',conv_l0_d2.shape)
+        conv_l0_d3 = self.conv_l0_d3(conv_l0_d2)
+        print('conv_l0_d3 shape: ',conv_l0_d3.shape)
+        cat1_l0 = torch.cat([conv_t0b, conv_l0_d3], 1)
+        print('cat1_l0 shape: ',cat1_l0.shape)
+        conv_l0_d4 = self.conv_l0_d4(cat1_l0)
+        print('conv_l0_d4 shape: ',conv_l0_d4.shape)
+        output_l0 = self.output_l0(conv_l0_d4)
+        print('output_l0 shape: ',output_l0.shape)
+        
         return output_l0
 
     def forward(self, x):
@@ -141,8 +161,7 @@ class PyNET(nn.Module):
             enhanced = output_l4
 
         return enhanced
-
-
+ 
 class ConvMultiBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, max_conv_size, instance_norm):
@@ -247,3 +266,92 @@ class UpsampleConvLayer(torch.nn.Module):
             out = self.relu(out)
 
         return out
+    
+class depthwise_conv(nn.Module):
+    def __init__(self, input_channels, kernel_size):
+        super(depthwise_conv, self).__init__()
+        
+        reflection_padding = 2 * (kernel_size//2)
+        
+        self.reflection_pad = nn.ReflectionPad2d(reflection_padding)
+        self.dw_conv =  nn.Sequential(nn.Conv2d(input_channels, input_channels, kernel_size, dilation=2, groups=input_channels),nn.ReLU())
+        self.point_conv = nn.Conv2d(input_channels, input_channels, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+    def forward(self, x):
+        
+        y = self.reflection_pad(x)
+        #print('y_depthwise shape: ',y.shape)
+        conv1 = self.dw_conv(y)
+        #print('depthwise_conv shape: ',conv1.shape)
+        conv2 = self.point_conv(conv1)
+        #print('point_conv shape: ',conv2.shape)
+        out = self.sigmoid(conv2)
+        return out
+
+class SpatialAttention2(nn.Module):
+    def __init__(self, input_channels, kernel_size):
+        
+        super(SpatialAttention2, self).__init__()
+        
+        self.dw = depthwise_conv(input_channels, kernel_size)
+        self.sigmoid = nn.Sigmoid() 
+
+    def forward(self, x):
+        
+        #print('x_sa2 shape: ',x.shape)
+        z= self.dw(x)
+        #print('z_sa2 shape: ',z.shape)
+        z1= self.sigmoid(z)
+        out = x * z1
+        #print('out_sa2 shape: ',out.shape)
+        return out
+
+class ChannelAttention(nn.Module):
+    def __init__(self, in_channels, ratio):
+        super(ChannelAttention, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+           
+        self.fc = nn.Sequential(nn.Conv2d(in_channels, in_channels // ratio, kernel_size = 1, bias=False),
+                               nn.ReLU(),
+                               nn.Conv2d(in_channels // ratio, in_channels, kernel_size= 1, bias=False))
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        avg_out = self.fc(self.avg_pool(x))
+        #print('x_ca_avg shape: ',avg_out.shape)
+        max_out = self.fc(self.max_pool(x))
+        #print('x_ca_max shape: ',max_out.shape)
+        out = self.sigmoid(avg_out * max_out)
+        #print('ca_out1 shape: ',out.shape)
+        out_ca = out * x
+        #print('ca_out shape: ',out_ca.shape)
+        return out_ca
+
+class att_module(nn.Module):
+    
+    def __init__(self, input_channels, ratio, kernel_size, instance_norm=False):
+        super(att_module, self).__init__()
+        
+        self.conv1 = ConvLayer(in_channels= input_channels, out_channels=input_channels*2, kernel_size=3, stride=1, relu=True)
+        self.conv2 = ConvLayer(in_channels=input_channels*2, out_channels=input_channels*2, kernel_size=1, relu=True, stride =1)
+        
+        self.ca = ChannelAttention(input_channels, ratio)
+        #self.sa = SpatialAttention(in_channels, kernel_size=5, dilation=2)
+        self.sa = SpatialAttention2(input_channels, kernel_size)
+        self.conv3 = ConvLayer(input_channels*2, input_channels, kernel_size=1, stride= 1, relu=True)
+    
+    def forward(self, x):
+       
+       conv1 = self.conv1(x)
+       print('conv1_att shape: ',conv1.shape)
+       conv2 = self.conv2(conv1)
+       print('conv2_att shape: ',conv2.shape)
+              
+       z1 = self.ca(conv2)
+       print('z1_att shape: ',z1.shape)
+       z2 = self.sa(conv2)
+       print('z2_att shape: ',z2.shape)
+       out = self.conv3(torch.cat([z1, z2], 1))
+       print('out_att shape: ',out.shape)
+       return out
