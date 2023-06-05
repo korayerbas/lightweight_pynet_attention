@@ -57,7 +57,7 @@ def train_model():
 
     # Creating image processing network and optimizer
 
-    generator = PyNET(level=level, instance_norm=True, instance_norm_level_1=True).to(device)
+    generator = PyNET_att(level=level, instance_norm=True, instance_norm_level_1=True).to(device)
     generator = torch.nn.DataParallel(generator)
 
     optimizer = Adam(params=generator.parameters(), lr=learning_rate)
