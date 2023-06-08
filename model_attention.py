@@ -334,9 +334,9 @@ class att_module(nn.Module):
         super(att_module, self).__init__()
         
         self.conv1 = ConvLayer(in_channels= input_channels, out_channels=input_channels*2, kernel_size=3, stride=1, relu=True)
-        self.conv2 = ConvLayer(in_channels=input_channels*2, out_channels=input_channels*2, kernel_size=1, relu=True, stride =1)
+        self.conv2 = ConvLayer(in_channels=input_channels*2, out_channels=input_channels, kernel_size=1, relu=True, stride =1)
         
-        self.ca = ChannelAttention(input_channels*2, ratio)
+        self.ca = ChannelAttention(input_channels, ratio)
         #self.sa = SpatialAttention(in_channels, kernel_size=5, dilation=2)
         self.sa = SpatialAttention2(input_channels, kernel_size)
         self.conv3 = ConvLayer(input_channels*2, input_channels, kernel_size=1, stride= 1, relu=True)
