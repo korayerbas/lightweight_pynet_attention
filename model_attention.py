@@ -107,23 +107,23 @@ class PyNET_att(nn.Module):
         return output_l1, conv_t0b
 
     def level_0(self, conv_t0b):
-        print('conv_t0b shape: ',conv_t0b.shape)
+        #print('conv_t0b shape: ',conv_t0b.shape)
         conv_l0_d1 = self.conv_l0_d1(conv_t0b)       
-        print('conv_l0_d1 shape: ',conv_l0_d1.shape)
+        #print('conv_l0_d1 shape: ',conv_l0_d1.shape)
         att_l0 = self.out_att (conv_l0_d1) 
-        print('att_l0 shape: ',att_l0.shape)
+        #print('att_l0 shape: ',att_l0.shape)
         z1_l0 = conv_l0_d1 + att_l0
-        print('z1_l0 shape: ',z1_l0.shape)
+        #print('z1_l0 shape: ',z1_l0.shape)
         conv_l0_d2 = self.conv_l0_d2(z1_l0)    
-        print('conv_l0_d2 shape: ',conv_l0_d2.shape)
+        #print('conv_l0_d2 shape: ',conv_l0_d2.shape)
         conv_l0_d3 = self.conv_l0_d3(conv_l0_d2)
-        print('conv_l0_d3 shape: ',conv_l0_d3.shape)
+        #print('conv_l0_d3 shape: ',conv_l0_d3.shape)
         cat1_l0 = torch.cat([conv_t0b, conv_l0_d3], 1)
-        print('cat1_l0 shape: ',cat1_l0.shape)
+        #print('cat1_l0 shape: ',cat1_l0.shape)
         conv_l0_d4 = self.conv_l0_d4(cat1_l0)
-        print('conv_l0_d4 shape: ',conv_l0_d4.shape)
+        #print('conv_l0_d4 shape: ',conv_l0_d4.shape)
         output_l0 = self.output_l0(conv_l0_d4)
-        print('output_l0 shape: ',output_l0.shape)
+        #print('output_l0 shape: ',output_l0.shape)
         
         return output_l0
 
@@ -344,14 +344,14 @@ class att_module(nn.Module):
     def forward(self, x):
        
        conv1 = self.conv1(x)
-       print('conv1_att shape: ',conv1.shape)
+       #print('conv1_att shape: ',conv1.shape)
        conv2 = self.conv2(conv1)
-       print('conv2_att shape: ',conv2.shape)
+       #print('conv2_att shape: ',conv2.shape)
               
        z1 = self.ca(conv2)
-       print('z1_att shape: ',z1.shape)
+       #print('z1_att shape: ',z1.shape)
        z2 = self.sa(conv2)
-       print('z2_att shape: ',z2.shape)
+       #print('z2_att shape: ',z2.shape)
        out = self.conv3(torch.cat([z1, z2], 1))
-       print('out_att shape: ',out.shape)
+       #print('out_att shape: ',out.shape)
        return out
